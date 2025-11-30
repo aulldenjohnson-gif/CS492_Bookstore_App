@@ -1,0 +1,41 @@
+<form id="purchaseOrderForm">
+    <h2>Purchase Order Details</h2>
+
+    <div class="po-header">
+        <label for="vendor">Vendor:</label>
+        <input type="text" id="vendor" name="vendor" required>
+
+        <label for="orderDate">Order Date:</label>
+        <input type="date" id="orderDate" name="orderDate" value="" required>
+
+        <label for="requiredDate">Required By:</label>
+        <input type="date" id="requiredDate" name="requiredDate">
+    </div>
+
+    <h3>Items to Order</h3>
+    <table id="itemTable">
+        <thead>
+            <tr>
+                <th>ISBN/Book ID</th>
+                <th>Quantity</th>
+                <th>Unit Cost</th>
+                <th>Line Total</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" style="text-align: right;">**Total:**</td>
+                <td id="grandTotal">$0.00</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <button type="button" onclick="addItemRow()">Add Item</button>
+    <button type="submit">Submit Purchase Order</button>
+</form>
+    <!-- Load purchase order form behavior -->
+    <script src="Code Docs/Purchase_Order_Form.js"></script>
