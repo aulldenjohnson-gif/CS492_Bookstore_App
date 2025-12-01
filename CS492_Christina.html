@@ -1,0 +1,108 @@
+<h1>Bookstore Management System</h1>
+
+<!-- Section: Add New Book -->
+<h2>Add Book</h2>
+<form id="bookForm">
+  Title: <input type="text" id="bookTitle" required>
+  Author: <input type="text" id="bookAuthor" required>
+  Quantity: <input type="number" id="bookQty" min="1" required>
+  <button type="submit">Add Book</button>
+</form>
+
+<!-- Inventory Table -->
+<h2>Inventory</h2>
+<table border="1" id="inventoryTable">
+  <tr>
+    <th>Title</th>
+    <th>Author</th>
+    <th>Quantity</th>
+  </tr>
+</table>
+
+<h2>Place Order</h2>
+<form id="orderForm">
+  Customer: <input type="text" id="custName" required>
+  Book: <input type="text" id="orderBook" required>
+  Quantity: <input type="number" id="orderQty" min="1" required>
+  <button type="submit">Place Order</button>
+</form>
+
+<!-- Orders Table -->
+<h2>Orders</h2>
+<table border="1" id="ordersTable">
+  <tr>
+    <th>Customer</th>
+    <th>Book</th>
+    <th>Quantity</th>
+  </tr>
+</table>
+
+<script>
+  const inventory = [];
+  const orders = [];
+
+  document.getElementById('bookForm').onsubmit = function(e) {
+    e.preventDefault(); // Prevent form from refreshing the page
+
+    const title = document.getElementById('bookTitle').value;
+    const author = document.getElementById('bookAuthor').value;
+    const qty = parseInt(document.getElementById('bookQty').value);
+
+    const existing = inventory.find(b => b.title === title);
+    if (existing) {
+      existing.qty += qty; // Add to existing quantity
+    } else {
+      inventory.push({ title, author, qty }); // Add new book
+    }
+
+    document.getElementById('bookForm').reset();
+    renderInventory();
+  }
+
+  document.getElementById('orderForm').onsubmit = function(e) {
+    e.preventDefault();
+
+    const customer = document.getElementById('custName').value;
+    const bookName = document.getElementById('orderBook').value;
+    const qty = parseInt(document.getElementById('orderQty').value);
+
+    const book = inventory.find(b => b.title === bookName);
+    if (!book) {
+      alert('Book not found.');
+      return;
+    }
+    if (book.qty < qty) {
+      alert('Not enough stock.');
+      return;
+    }
+
+    book.qty -= qty;
+    orders.push({ customer, book: book.title, qty });
+
+    document.getElementById('orderForm').reset();
+    renderInventory();
+    renderOrders();
+  }
+
+  function renderInventory() {
+    const table = document.getElementById('inventoryTable');
+    table.innerHTML = '<tr><th>Title</th><th>Author</th><th>Quantity</th></tr>';
+    inventory.forEach(b => {
+      table.innerHTML += `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.qty}</td></tr>`;
+    });
+  }
+
+  function renderOrders() {
+    const table = document.getElementById('ordersTable');
+    table.innerHTML = '<tr><th>Customer</th><th>Book</th><th>Quantity</th></tr>';
+    orders.forEach(o => {
+      table.innerHTML += `<tr><td>${o.customer}</td><td>${o.book}</td><td>${o.qty}</td></tr>`;
+    });
+  }
+
+  renderInventory();
+  renderOrders();
+</script>
+
+</body>
+</html>
