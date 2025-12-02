@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bookstore Management System</title>
+    <style>
+        /* Simple styling for readability */
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        form > * { margin-right: 10px; }
+        .total-row td { font-weight: bold; background-color: #e6e6ff; }
+    </style>
+</head>
+<body>
+
+    <h1>Bookstore Management System</h1>
+
+    <h2>Add Book to Inventory</h2>
+    <form id="bookForm">
+      Title: <input type="text" id="bookTitle" required>
+      Author: <input type="text" id="bookAuthor" required>
+      Quantity: <input type="number" id="bookQty" min="1" required>
+      <button type="submit">Add Book</button>
+    </form>
+
+    ---
+
+    <h2>Current Inventory</h2>
+    <table id="inventoryTable">
+      </table>
+
+    ---
+
+    <h2>Place Customer Order</h2>
+    <form id="orderForm">
+      Customer: <input type="text" id="custName" required>
+      Book: <input type="text" id="orderBook" required>
+      Quantity: <input type="number" id="orderQty" min="1" required>
+      <button type="submit">Place Order</button>
+    </form>
+
+    ---
+
+    <h2>Customer Orders</h2>
+    <table id="ordersTable">
+      </table>
+    
+    ---
+    
+    <h2>Create New Supplier Purchase Order</h2>
+    <form id="purchaseOrderForm" onsubmit="event.preventDefault(); alert('Purchase Order submitted!');">
+        <p>Supplier: <input type="text" required> | PO Date: <input type="date" required></p>
+        <table id="itemTable">
+            <thead>
+                <tr>
+                    <th>ISBN/Book ID</th>
+                    <th>Quantity</th>
+                    <th>Unit Cost</th>
+                    <th>Line Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">Grand Total:</td>
+                    <td id="grandTotal">$0.00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        <button type="button" onclick="addItemRow()">Add Item</button>
+        <button type="submit">Submit Purchase Order</button>
+    </form>
+
+    <script>
+        // 📚 Logic from Untitled-1.html (Inventory and Customer Orders)
+        const inventory = [];
+        const orders = [];
+
+        // Helper function to re-render the inventory table
+        function renderInventory() {
+          const table = document.getElementById('inventoryTable');
+          table.innerHTML = '<tr><th>Title</th><th>Author</th><th>Quantity</th></tr>';
+          inventory.forEach(b => {
+            table.innerHTML += `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.qty}</td></tr>`;
+          });
+        }
+
+        // Helper function to re-render the orders table
+        function renderOrders() {
+          const table = document.getElementById('ordersTable');
+          table.innerHTML = '<tr><th>Customer</th><th>Book</th><th>Quantity</th></tr>';
+          orders.forEach(o => {
+            table.innerHTML += `<tr><td>${o.customer}</td><td>${o.book}</td><td>${o.qty}</td></tr>`;
+          });
+        }
+        
+        // Event handler for adding a new book
+        document.getElementById('bookForm').onsubmit = function(e) {
+          e.preventDefault();
+
+          const title = document.getElementById('bookTitle').value;
+          const author = document.getElementById('bookAuthor').value;
+          // Use parseFloat to handle potential non-integers, though input is number type
+          const qty = parseInt(document.getElementById('bookQty').value);
+
+          const existing = inventory.find(b => b.title.toLowerCase() === title.toLowerCase());
+          if (existing) {
+            existing.qty += qty;
+          } else {
+            inventory.push({ title, author, qty });
+          }
+
+          document.getElementById('bookForm').reset();
+          renderInventory();
+        }
+
+        // Event handler for placing a customer order
+        document.getElementById('orderForm').onsubmit = function(e) {
+          e.preventDefault();
+
+          const customer = document.getElementById('custName').value;
+          const bookName = document.getElementById('orderBook').value;
+          const qty = parseInt(document.getElementById('orderQty').value);
+
+          const book = inventory.find(b => b.title.toLowerCase() === bookName.toLowerCase());
+          if (!book) {
+            alert('Book not found in inventory.');
+            return;
+          }
+          if (book.qty < qty) {
+            alert(`Not enough stock. Only ${book.qty} copies of ${bookName} available.`);
+            return;
+          }
+
+          book.qty -= qty;
+          orders.push({ customer, book: book.title, qty });
+
+          document.getElementById('orderForm').reset();
+          renderInventory();
+          renderOrders();
+        }
+
+        // Initial render calls
+        renderInventory();
+        renderOrders();
+
+
+        // 💰 Logic from Purchase_Order_Form.js (Supplier PO and calculation)
+
+        function formatCurrency(amount) {
+            return `$${Number(amount).toFixed(2)}`;
+        }
+
+        function calculateLineTotal(rowOrElement) {
+            const row = rowOrElement.tagName === 'TR' ? rowOrElement : rowOrElement.closest('tr');
+            if (!row) return;
+
+            const quantity = parseFloat(row.querySelector('.quantity')?.value) || 0;
+            const cost = parseFloat(row.querySelector('.cost')?.value) || 0;
+            const lineTotal = quantity * cost;
+
+            const lineCell = row.querySelector('.line-total');
+            if (lineCell) lineCell.textContent = formatCurrency(lineTotal);
+
+            calculateGrandTotal();
+        }
+
+        function deleteItemRow(rowOrButton) {
+            const row = rowOrButton.tagName === 'TR' ? rowOrButton : rowOrButton.closest('tr');
+            if (!row) return;
+            row.remove();
+            calculateGrandTotal();
+        }
+
+        // Must be defined before addItemRow uses it
+        function calculateGrandTotal() {
+            let grandTotal = 0;
+            // Select all line totals and sum them up
+            document.querySelectorAll('.line-total').forEach(cell => {
+                // Remove '$' before parsing to a number
+                const totalValue = parseFloat(cell.textContent.replace('$', '')) || 0;
+                grandTotal += totalValue;
+            });
+
+            const grandEl = document.getElementById('grandTotal');
+            if (grandEl) grandEl.textContent = formatCurrency(grandTotal);
+        }
+
+        function addItemRow() {
+            const tableBody = document.querySelector('#itemTable tbody');
+            if (!tableBody) return;
+
+            const newRow = tableBody.insertRow();
+
+            // 1. ISBN/Book ID
+            let cell1 = newRow.insertCell();
+            cell1.innerHTML = '<input type="text" class="isbn" required>';
+
+            // 2. Quantity
+            let cell2 = newRow.insertCell();
+            cell2.innerHTML = '<input type="number" class="quantity" value="1" min="1" required>';
+
+            // 3. Unit Cost
+            let cell3 = newRow.insertCell();
+            cell3.innerHTML = '<input type="number" class="cost" value="0.00" min="0" step="0.01" required>';
+
+            // 4. Line Total (Read-only output)
+            let cell4 = newRow.insertCell();
+            cell4.classList.add('line-total');
+            cell4.textContent = formatCurrency(0);
+
+            // 5. Delete Button
+            let cell5 = newRow.insertCell();
+            // Pass the row directly to the delete function
+            cell5.innerHTML = '<button type="button" class="delete-row">Delete</button>';
+
+            // Attach event listeners
+            const qtyInput = newRow.querySelector('.quantity');
+            const costInput = newRow.querySelector('.cost');
+            const deleteBtn = newRow.querySelector('.delete-row');
+
+            const recalc = () => calculateLineTotal(newRow);
+            qtyInput.addEventListener('input', recalc);
+            costInput.addEventListener('input', recalc);
+            deleteBtn.addEventListener('click', () => deleteItemRow(newRow));
+
+            // Calculate initial line total
+            calculateLineTotal(newRow);
+        }
+
+        // Add a default row when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.querySelector('#itemTable tbody');
+            if (tableBody && tableBody.rows.length === 0) addItemRow();
+        });
+    </script>
+
+</body>
+</html>
