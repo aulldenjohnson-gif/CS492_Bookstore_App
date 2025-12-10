@@ -1,0 +1,31 @@
+:root{
+  --bg:#f7f9fb; --card:#fff; --muted:#6b7280; --accent:#2563eb; --success:#16a34a; --danger:#ef4444;
+  --max-width:1100px; --radius:8px;
+}
+*{box-sizing:border-box;font-family:Segoe UI, Roboto, Arial, sans-serif}
+body{background:var(--bg);margin:0;padding:24px}
+.container{max-width:var(--max-width);margin:0 auto}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.page-header h1{margin:0;font-size:1.4rem}
+.controls{display:flex;gap:8px;align-items:center}
+.controls input[type=search]{padding:8px 10px;border-radius:6px;border:1px solid #d1d5db;width:280px}
+.controls select, .controls button{padding:8px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff}
+.table-wrap{background:var(--card);border-radius:var(--radius);padding:8px;box-shadow:0 1px 3px rgba(2,6,23,0.06)}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:0.85rem;text-align:left;padding:10px 12px;color:var(--muted);border-bottom:1px solid #e6e6e6}
+tbody td{padding:10px 12px;border-bottom:1px solid #f1f5f9}
+.status-badge{padding:6px 8px;border-radius:999px;color:#fff;font-weight:600;font-size:0.75rem}
+.status-pending{background:#f59e0b}
+.status-processing{background:#60a5fa}
+.status-shipped{background:#f97316}
+.status-received{background:var(--success)}
+.status-cancelled{background:var(--danger)}
+.actions button{margin-right:6px;padding:6px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff}
+.pagination{display:flex;gap:6px;justify-content:flex-end;padding-top:12px}
+.pagination button{padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff}
+.modal{width:720px;max-width:95%;border-radius:8px;padding:16px}
+.modal .modal-close{float:right}
+@media (max-width:720px){
+  .controls{flex-wrap:wrap}
+  .controls input{width:100%}
+}

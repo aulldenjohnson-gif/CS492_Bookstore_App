@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Supplier Order History — Bookstore</title>
+  <link rel="stylesheet" href="assets/css/supplier_order_history.css">
+</head>
+<body>
+  <main class="container">
+    <header class="page-header">
+      <h1>Supplier Order History</h1>
+      <div class="controls">
+        <input id="searchInput" type="search" placeholder="Search orders, supplier, SKU, title...">
+        <select id="supplierFilter"><option value="">All Suppliers</option></select>
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="shipped">Shipped</option>
+          <option value="received">Received</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button id="exportCsv">Export CSV</button>
+      </div>
+    </header>
+
+    <section class="table-wrap">
+      <table id="ordersTable">
+        <thead>
+          <tr>
+            <th data-key="order_id">Order #</th>
+            <th data-key="date">Date</th>
+            <th data-key="supplier">Supplier</th>
+            <th data-key="items">Items</th>
+            <th data-key="total">Total</th>
+            <th data-key="status">Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <nav class="pagination" id="pagination"></nav>
+  </main>
+
+  <dialog id="detailsModal" class="modal">
+    <form method="dialog">
+      <button class="modal-close" type="button">Close</button>
+    </form>
+    <div id="modalContent"></div>
+  </dialog>
+
+  <script src="assets/js/supplier_order_history.js"></script>
+</body>
+</html>
