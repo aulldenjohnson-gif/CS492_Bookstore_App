@@ -29,6 +29,11 @@
     ---
 
     <h2>Current Inventory</h2>
+    <p>
+      Low stock threshold:
+      <input type="number" id="lowStockThreshold" value="5" min="0" style="width:70px">
+      <span id="lowStockAlert" style="color:#b33; font-weight:bold; display:none; margin-left:12px"></span>
+    </p>
     <table id="inventoryTable">
       </table>
 
@@ -85,70 +90,120 @@
         // Helper function to re-render the inventory table
         function renderInventory() {
           const table = document.getElementById('inventoryTable');
+          if (!table) return;
+          const threshold = getLowStockThreshold();
           table.innerHTML = '<tr><th>Title</th><th>Author</th><th>Quantity</th></tr>';
           inventory.forEach(b => {
-            table.innerHTML += `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.qty}</td></tr>`;
+            const lowClass = (threshold !== null && b.qty <= threshold) ? ' style="background-color:#fff0f0"' : '';
+            table.innerHTML += `<tr${lowClass}><td>${b.title}</td><td>${b.author}</td><td>${b.qty}</td></tr>`;
           });
         }
 
         // Helper function to re-render the orders table
         function renderOrders() {
           const table = document.getElementById('ordersTable');
+          if (!table) return;
           table.innerHTML = '<tr><th>Customer</th><th>Book</th><th>Quantity</th></tr>';
           orders.forEach(o => {
             table.innerHTML += `<tr><td>${o.customer}</td><td>${o.book}</td><td>${o.qty}</td></tr>`;
           });
         }
         
-        // Event handler for adding a new book
-        document.getElementById('bookForm').onsubmit = function(e) {
-          e.preventDefault();
-
-          const title = document.getElementById('bookTitle').value;
-          const author = document.getElementById('bookAuthor').value;
-          // Use parseFloat to handle potential non-integers, though input is number type
-          const qty = parseInt(document.getElementById('bookQty').value);
-
-          const existing = inventory.find(b => b.title.toLowerCase() === title.toLowerCase());
-          if (existing) {
-            existing.qty += qty;
-          } else {
-            inventory.push({ title, author, qty });
-          }
-
-          document.getElementById('bookForm').reset();
-          renderInventory();
+        // Event handler for adding a new book and wiring up order form
+        function getLowStockThreshold() {
+          const el = document.getElementById('lowStockThreshold');
+          if (!el) return null;
+          const v = parseInt(el.value);
+          return Number.isFinite(v) ? v : null;
         }
 
-        // Event handler for placing a customer order
-        document.getElementById('orderForm').onsubmit = function(e) {
-          e.preventDefault();
+        function checkLowStock() {
+          try {
+            const threshold = getLowStockThreshold();
+            const alertEl = document.getElementById('lowStockAlert');
+            if (threshold === null || !alertEl) return;
 
-          const customer = document.getElementById('custName').value;
-          const bookName = document.getElementById('orderBook').value;
-          const qty = parseInt(document.getElementById('orderQty').value);
-
-          const book = inventory.find(b => b.title.toLowerCase() === bookName.toLowerCase());
-          if (!book) {
-            alert('Book not found in inventory.');
-            return;
+            const lowItems = inventory.filter(b => b.qty <= threshold);
+            if (lowItems.length === 0) {
+              alertEl.style.display = 'none';
+              alertEl.textContent = '';
+            } else {
+              alertEl.style.display = 'inline';
+              const names = lowItems.map(i => `${i.title} (${i.qty})`);
+              alertEl.textContent = 'Low stock: ' + names.join(', ');
+            }
+          } catch (err) {
+            console.error('checkLowStock error:', err);
           }
-          if (book.qty < qty) {
-            alert(`Not enough stock. Only ${book.qty} copies of ${bookName} available.`);
-            return;
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+          const bookForm = document.getElementById('bookForm');
+          if (bookForm) {
+            bookForm.onsubmit = function(e) {
+              e.preventDefault();
+
+              const title = document.getElementById('bookTitle').value;
+              const author = document.getElementById('bookAuthor').value;
+              const qty = parseInt(document.getElementById('bookQty').value);
+
+              const existing = inventory.find(b => b.title.toLowerCase() === title.toLowerCase());
+              if (existing) {
+                existing.qty += qty;
+              } else {
+                inventory.push({ title, author, qty });
+              }
+
+              bookForm.reset();
+              renderInventory();
+              checkLowStock();
+            }
           }
 
-          book.qty -= qty;
-          orders.push({ customer, book: book.title, qty });
+          // Event handler for placing a customer order
+          const orderForm = document.getElementById('orderForm');
+          if (orderForm) {
+            orderForm.onsubmit = function(e) {
+              e.preventDefault();
 
-          document.getElementById('orderForm').reset();
+              const customer = document.getElementById('custName').value;
+              const bookName = document.getElementById('orderBook').value;
+              const qty = parseInt(document.getElementById('orderQty').value);
+
+              const book = inventory.find(b => b.title.toLowerCase() === bookName.toLowerCase());
+              if (!book) {
+                alert('Book not found in inventory.');
+                return;
+              }
+              if (book.qty < qty) {
+                alert(`Not enough stock. Only ${book.qty} copies of ${bookName} available.`);
+                return;
+              }
+
+              book.qty -= qty;
+              orders.push({ customer, book: book.title, qty });
+
+              orderForm.reset();
+              renderInventory();
+              renderOrders();
+              checkLowStock();
+            }
+          }
+
+          // wire threshold input to update
+          const thresholdInput = document.getElementById('lowStockThreshold');
+          if (thresholdInput) {
+            thresholdInput.addEventListener('input', () => {
+              renderInventory();
+              checkLowStock();
+            });
+          }
+
+          // Initial render calls
           renderInventory();
           renderOrders();
-        }
-
-        // Initial render calls
-        renderInventory();
-        renderOrders();
+          checkLowStock();
+        });
 
 
         // 💰 Logic from Purchase_Order_Form.js (Supplier PO and calculation)
@@ -235,9 +290,15 @@
         }
 
         // Add a default row when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            const tableBody = document.querySelector('#itemTable tbody');
-            if (tableBody && tableBody.rows.length === 0) addItemRow();
+        window.addEventListener('load', function() {
+            try {
+                const tableBody = document.querySelector('#itemTable tbody');
+                if (tableBody && tableBody.querySelectorAll('tr').length === 0) {
+                    addItemRow();
+                }
+            } catch(error) {
+                console.error('Error initializing purchase order table:', error);
+            }
         });
     </script>
 
