@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bookstore Management System</title>
     <style>
         /* Simple styling for readability */
@@ -12,6 +13,11 @@
         th { background-color: #f2f2f2; }
         form > * { margin-right: 10px; }
         .total-row td { font-weight: bold; background-color: #e6e6ff; }
+      /* Accessibility / presentation classes */
+      .low-stock-alert { color:#b33; font-weight:bold; margin-left:12px; display:none }
+      .low-stock-row { background-color:#fff0f0 }
+      .grand-total-cell { text-align: right }
+      .threshold-input { width:70px }
     </style>
 </head>
 <body>
@@ -20,9 +26,12 @@
 
     <h2>Add Book to Inventory</h2>
     <form id="bookForm">
-      Title: <input type="text" id="bookTitle" required>
-      Author: <input type="text" id="bookAuthor" required>
-      Quantity: <input type="number" id="bookQty" min="1" required>
+      <label for="bookTitle">Title:</label>
+      <input type="text" id="bookTitle" required title="Book title" placeholder="Book title">
+      <label for="bookAuthor">Author:</label>
+      <input type="text" id="bookAuthor" required title="Author name" placeholder="Author name">
+      <label for="bookQty">Quantity:</label>
+      <input type="number" id="bookQty" min="1" required title="Quantity" placeholder="1">
       <button type="submit">Add Book</button>
     </form>
 
@@ -30,9 +39,9 @@
 
     <h2>Current Inventory</h2>
     <p>
-      Low stock threshold:
-      <input type="number" id="lowStockThreshold" value="5" min="0" style="width:70px">
-      <span id="lowStockAlert" style="color:#b33; font-weight:bold; display:none; margin-left:12px"></span>
+      <label for="lowStockThreshold">Low stock threshold:</label>
+      <input type="number" id="lowStockThreshold" value="5" min="0" title="Low stock threshold" class="threshold-input">
+      <span id="lowStockAlert" class="low-stock-alert"></span>
     </p>
     <table id="inventoryTable">
       </table>
@@ -41,9 +50,12 @@
 
     <h2>Place Customer Order</h2>
     <form id="orderForm">
-      Customer: <input type="text" id="custName" required>
-      Book: <input type="text" id="orderBook" required>
-      Quantity: <input type="number" id="orderQty" min="1" required>
+      <label for="custName">Customer:</label>
+      <input type="text" id="custName" required title="Customer name" placeholder="Customer name">
+      <label for="orderBook">Book:</label>
+      <input type="text" id="orderBook" required title="Book title" placeholder="Book title">
+      <label for="orderQty">Quantity:</label>
+      <input type="number" id="orderQty" min="1" required title="Order quantity" placeholder="1">
       <button type="submit">Place Order</button>
     </form>
 
@@ -57,7 +69,12 @@
     
     <h2>Create New Supplier Purchase Order</h2>
     <form id="purchaseOrderForm" onsubmit="event.preventDefault(); alert('Purchase Order submitted!');">
-        <p>Supplier: <input type="text" required> | PO Date: <input type="date" required></p>
+        <p>
+          <label for="supplierName">Supplier:</label>
+          <input type="text" id="supplierName" required title="Supplier name" placeholder="Supplier name">
+          <label for="poDate">PO Date:</label>
+          <input type="date" id="poDate" required title="Purchase order date">
+        </p>
         <table id="itemTable">
             <thead>
                 <tr>
@@ -72,9 +89,9 @@
                 </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td colspan="3" style="text-align: right;">Grand Total:</td>
-                    <td id="grandTotal">$0.00</td>
-                    <td></td>
+                  <td colspan="3" class="grand-total-cell">Grand Total:</td>
+                  <td id="grandTotal">$0.00</td>
+                  <td></td>
                 </tr>
             </tfoot>
         </table>
