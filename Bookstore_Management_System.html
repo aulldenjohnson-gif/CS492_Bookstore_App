@@ -19,6 +19,19 @@
       .grand-total-cell { text-align: right }
       .threshold-input { width:70px }
     </style>
+    <style id="receipt-generation-styles">
+      /* Styles used for generated receipt content (PDF and popup) */
+      .receipt-temp { font-family: Arial, sans-serif; max-width:700px; padding:16px; }
+      .receipt-temp table { width:100%; border-collapse:collapse; }
+      .receipt-temp th { text-align:left; padding:8px; border-bottom:1px solid #eee }
+      .receipt-temp td { padding:8px; border-bottom:1px solid #eee }
+      .receipt-temp .right { text-align:right }
+      .receipt-temp .total { font-weight: bold; font-size:1.1em }
+      .receipt-temp .small-muted { font-size:0.9em; color:#666 }
+    </style>
+    <!-- PDF export libraries: html2canvas and jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -35,7 +48,7 @@
       <button type="submit">Add Book</button>
     </form>
 
-    ---
+    <hr>
 
     <h2>Current Inventory</h2>
     <p>
@@ -46,7 +59,7 @@
     <table id="inventoryTable">
       </table>
 
-    ---
+    <hr>
 
     <h2>Place Customer Order</h2>
     <form id="orderForm">
@@ -59,13 +72,17 @@
       <button type="submit">Place Order</button>
     </form>
 
-    ---
+    <hr>
 
     <h2>Customer Orders</h2>
+    <p>
+      <button type="button" id="printLastReceipt">Print Last Receipt</button>
+      <button type="button" id="downloadLastReceipt">Download Last Receipt (PDF)</button>
+    </p>
     <table id="ordersTable">
       </table>
     
-    ---
+    <hr>
     
     <h2>Create New Supplier Purchase Order</h2>
     <form id="purchaseOrderForm" onsubmit="event.preventDefault(); alert('Purchase Order submitted!');">
@@ -204,6 +221,13 @@
               renderInventory();
               renderOrders();
               checkLowStock();
+              // Generate printable receipt for this order
+              try {
+                const newOrder = orders[orders.length - 1];
+                generateReceipt(newOrder);
+              } catch (err) {
+                console.error('Receipt generation failed:', err);
+              }
             }
           }
 
@@ -221,6 +245,156 @@
           renderOrders();
           checkLowStock();
         });
+
+        // Print / Generate receipt for last order
+        document.addEventListener('DOMContentLoaded', () => {
+          const btn = document.getElementById('printLastReceipt');
+          if (btn) btn.addEventListener('click', () => {
+            if (orders.length === 0) {
+              alert('No orders yet to print.');
+              return;
+            }
+            generateReceipt(orders[orders.length - 1]);
+          });
+
+          const dl = document.getElementById('downloadLastReceipt');
+          if (dl) dl.addEventListener('click', async () => {
+            if (orders.length === 0) {
+              alert('No orders yet to download.');
+              return;
+            }
+            try {
+              await generateReceiptPDF(orders[orders.length - 1]);
+            } catch (err) {
+              console.error('PDF generation failed:', err);
+              alert('PDF generation failed: ' + (err && err.message ? err.message : err));
+            }
+          });
+        });
+
+        // Receipt generation utility: opens a printable window with order details
+        function generateReceipt(order) {
+          if (!order) return;
+          const now = new Date();
+          const orderId = 'ORD-' + now.getTime();
+          const receiptHtml = `<!doctype html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Receipt ${orderId}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding:20px; }
+                .receipt { max-width:600px; margin:auto; border:1px solid #ddd; padding:16px }
+                h2 { margin-top:0 }
+                table { width:100%; border-collapse:collapse }
+                td, th { padding:8px; border-bottom:1px solid #eee }
+                .right { text-align:right }
+                .total { font-weight: bold; font-size:1.1em }
+                .small-muted { font-size:0.9em;color:#666 }
+              </style>
+            </head>
+            <body>
+              <div class="receipt">
+                <h2>Bookstore Receipt</h2>
+                <p>Order ID: <strong>${orderId}</strong><br>
+                Date: ${now.toLocaleString()}</p>
+
+                <table>
+                  <tr><th>Customer</th><td>${escapeHtml(order.customer)}</td></tr>
+                  <tr><th>Book</th><td>${escapeHtml(order.book)}</td></tr>
+                  <tr><th>Quantity</th><td class="right">${order.qty}</td></tr>
+                </table>
+
+                <p class="right total">Items: ${order.qty}</p>
+
+                <p>Thank you for your purchase!</p>
+                <p class="small-muted">Please retain this receipt for your records.</p>
+              </div>
+              <script>
+                // Auto-trigger print and close the window afterwards
+                window.onload = function() {
+                  setTimeout(function(){ window.print(); }, 250);
+                };
+              <\/script>
+            </body>
+            </html>`;
+
+          const win = window.open('', '_blank', 'width=700,height=800');
+          if (!win) {
+            // Fallback: popup blocked — generate a PDF instead
+            console.warn('Popup blocked when opening receipt window; falling back to PDF.');
+            generateReceiptPDF(order).catch(err => console.error('Fallback PDF failed:', err));
+            alert('Popup blocked. A PDF receipt will be downloaded instead.');
+            return;
+          }
+          win.document.open();
+          win.document.write(receiptHtml);
+          win.document.close();
+        }
+
+        function escapeHtml(str) {
+          if (!str) return '';
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        // Generate a PDF for the receipt using html2canvas + jsPDF
+        async function generateReceiptPDF(order) {
+          if (!order) return;
+
+          // Build a DOM element for the receipt (kept offscreen)
+          const container = document.createElement('div');
+          container.style.position = 'fixed';
+          container.style.left = '-9999px';
+          container.style.top = '0';
+          container.style.width = '700px';
+          container.style.padding = '16px';
+          container.className = 'receipt-temp';
+          container.innerHTML = `
+            <div class="receipt-temp">
+              <h2>Bookstore Receipt</h2>
+              <p>Order ID: <strong>${'TMP-' + Date.now()}</strong><br>
+              Date: ${new Date().toLocaleString()}</p>
+              <table>
+                <tr><th>Customer</th><td>${escapeHtml(order.customer)}</td></tr>
+                <tr><th>Book</th><td>${escapeHtml(order.book)}</td></tr>
+                <tr><th>Quantity</th><td class="right">${order.qty}</td></tr>
+              </table>
+              <p class="right total">Items: ${order.qty}</p>
+              <p>Thank you for your purchase!</p>
+            </div>
+          `;
+
+          document.body.appendChild(container);
+
+          try {
+            // Render with html2canvas at higher scale for quality
+            const canvas = await html2canvas(container, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+
+            // Use jsPDF to create PDF and add the image
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            // Calculate image dimensions to fit page width with aspect ratio
+            const imgProps = pdf.getImageProperties(imgData);
+            const imgWidth = pageWidth - 40; // margins
+            const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+            pdf.save(`receipt_${Date.now()}.pdf`);
+          } finally {
+            // Remove temp node
+            container.remove();
+          }
+        }
 
 
         // 💰 Logic from Purchase_Order_Form.js (Supplier PO and calculation)
@@ -272,15 +446,15 @@
 
             // 1. ISBN/Book ID
             let cell1 = newRow.insertCell();
-            cell1.innerHTML = '<input type="text" class="isbn" required>';
+            cell1.innerHTML = '<input type="text" class="isbn" required title="ISBN or Book ID" placeholder="ISBN/Book ID" aria-label="ISBN or Book ID">';
 
             // 2. Quantity
             let cell2 = newRow.insertCell();
-            cell2.innerHTML = '<input type="number" class="quantity" value="1" min="1" required>';
+            cell2.innerHTML = '<input type="number" class="quantity" value="1" min="1" required title="Quantity" placeholder="Qty" aria-label="Quantity">';
 
             // 3. Unit Cost
             let cell3 = newRow.insertCell();
-            cell3.innerHTML = '<input type="number" class="cost" value="0.00" min="0" step="0.01" required>';
+            cell3.innerHTML = '<input type="number" class="cost" value="0.00" min="0" step="0.01" required title="Unit cost" placeholder="0.00" aria-label="Unit cost">';
 
             // 4. Line Total (Read-only output)
             let cell4 = newRow.insertCell();

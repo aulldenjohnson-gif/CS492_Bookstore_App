@@ -3,9 +3,12 @@
 <!-- Section: Add New Book -->
 <h2>Add Book</h2>
 <form id="bookForm">
-  Title: <input type="text" id="bookTitle" required>
-  Author: <input type="text" id="bookAuthor" required>
-  Quantity: <input type="number" id="bookQty" min="1" required>
+  <label for="bookTitle">Title:</label>
+  <input type="text" id="bookTitle" required placeholder="Enter book title" title="Book title">
+  <label for="bookAuthor">Author:</label>
+  <input type="text" id="bookAuthor" required placeholder="Enter author name" title="Author name">
+  <label for="bookQty">Quantity:</label>
+  <input type="number" id="bookQty" min="1" required placeholder="1" title="Quantity">
   <button type="submit">Add Book</button>
 </form>
 
@@ -21,9 +24,12 @@
 
 <h2>Place Order</h2>
 <form id="orderForm">
-  Customer: <input type="text" id="custName" required>
-  Book: <input type="text" id="orderBook" required>
-  Quantity: <input type="number" id="orderQty" min="1" required>
+  <label for="custName">Customer:</label>
+  <input type="text" id="custName" required placeholder="Customer name" title="Customer name">
+  <label for="orderBook">Book:</label>
+  <input type="text" id="orderBook" required placeholder="Book title" title="Book title">
+  <label for="orderQty">Quantity:</label>
+  <input type="number" id="orderQty" min="1" required placeholder="1" title="Quantity">
   <button type="submit">Place Order</button>
 </form>
 
