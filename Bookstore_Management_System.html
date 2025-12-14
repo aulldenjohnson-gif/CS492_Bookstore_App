@@ -5,29 +5,295 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Bookstore Management System</title>
     <style>
-        /* Simple styling for readability */
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1, h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        form > * { margin-right: 10px; }
-        .total-row td { font-weight: bold; background-color: #e6e6ff; }
-      /* Accessibility / presentation classes */
-      .low-stock-alert { color:#b33; font-weight:bold; margin-left:12px; display:none }
-      .low-stock-row { background-color:#fff0f0 }
-      .grand-total-cell { text-align: right }
-      .threshold-input { width:70px }
-    </style>
-    <style id="receipt-generation-styles">
-      /* Styles used for generated receipt content (PDF and popup) */
-      .receipt-temp { font-family: Arial, sans-serif; max-width:700px; padding:16px; }
-      .receipt-temp table { width:100%; border-collapse:collapse; }
-      .receipt-temp th { text-align:left; padding:8px; border-bottom:1px solid #eee }
-      .receipt-temp td { padding:8px; border-bottom:1px solid #eee }
-      .receipt-temp .right { text-align:right }
-      .receipt-temp .total { font-weight: bold; font-size:1.1em }
-      .receipt-temp .small-muted { font-size:0.9em; color:#666 }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Form Styling */
+        form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        label {
+            display: inline-block;
+            font-weight: 600;
+            color: #555;
+            margin-right: 10px;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        input[type="password"] {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        form button[type="submit"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        form button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button[type="button"] {
+            background: #667eea;
+            color: white;
+            margin-top: 10px;
+        }
+
+        button[type="button"]:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 15px;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .total-row {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .total-row td {
+            padding: 15px;
+            color: #333;
+        }
+
+        /* Low Stock Alert */
+        .low-stock-alert {
+            color: #d32f2f;
+            font-weight: bold;
+            background: #ffebee;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-left: 12px;
+            display: none;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .low-stock-row {
+            background-color: #ffebee !important;
+        }
+
+        .grand-total-cell {
+            text-align: right;
+        }
+
+        .threshold-input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        /* Receipt Styles */
+        .receipt-temp {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 700px;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .receipt-temp table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .receipt-temp th {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 2px solid #667eea;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .receipt-temp td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .receipt-temp .right {
+            text-align: right;
+        }
+
+        .receipt-temp .total {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #667eea;
+        }
+
+        .receipt-temp .small-muted {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        /* Info Section */
+        p {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea 0%, transparent 100%);
+            margin: 30px 0;
+        }
+
+        /* Cancel Button in Tables */
+        .cancel-btn {
+            background-color: #d32f2f !important;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .cancel-btn:hover {
+            background-color: #b71c1c !important;
+            transform: scale(1.05);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.2em;
+            }
+
+            form {
+                padding: 15px;
+            }
+
+            input, button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
     </style>
     <!-- PDF export libraries: html2canvas and jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -35,7 +301,8 @@
 </head>
 <body>
 
-    <h1>Bookstore Management System</h1>
+    <div class="container">
+        <h1>📚 Bookstore Management System</h1>
 
     <h2>Add Book to Inventory</h2>
     <form id="bookForm">
@@ -85,7 +352,7 @@
     <hr>
     
     <h2>Create New Supplier Purchase Order</h2>
-    <form id="purchaseOrderForm" onsubmit="event.preventDefault(); alert('Purchase Order submitted!');">
+    <form id="purchaseOrderForm" onsubmit="event.preventDefault(); submitSupplierOrder();">
         <p>
           <label for="supplierName">Supplier:</label>
           <input type="text" id="supplierName" required title="Supplier name" placeholder="Supplier name">
@@ -116,6 +383,30 @@
         <button type="submit">Submit Purchase Order</button>
     </form>
 
+    <hr>
+
+    <h2>Supplier Order History</h2>
+    <div style="margin-bottom: 15px;">
+        <button type="button" class="filter-btn" onclick="filterSupplierOrders('all')" style="padding: 8px 15px; margin-right: 5px; cursor: pointer;">All Orders</button>
+        <button type="button" class="filter-btn" onclick="filterSupplierOrders('pending')" style="padding: 8px 15px; margin-right: 5px; cursor: pointer;">Pending</button>
+        <button type="button" class="filter-btn" onclick="filterSupplierOrders('received')" style="padding: 8px 15px; cursor: pointer;">Received</button>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>PO ID</th>
+                <th>Supplier Name</th>
+                <th>PO Date</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="supplierOrderHistoryBody">
+            <tr><td colspan="6" style="text-align:center;padding:15px;">Loading...</td></tr>
+        </tbody>
+    </table>
+
     <script>
         // 📚 Logic from Untitled-1.html (Inventory and Customer Orders)
         const inventory = [];
@@ -137,10 +428,77 @@
         function renderOrders() {
           const table = document.getElementById('ordersTable');
           if (!table) return;
-          table.innerHTML = '<tr><th>Customer</th><th>Book</th><th>Quantity</th></tr>';
+          table.innerHTML = '<tr><th>Order ID</th><th>Customer</th><th>Book</th><th>Quantity</th><th>Status</th><th>Action</th></tr>';
           orders.forEach(o => {
-            table.innerHTML += `<tr><td>${o.customer}</td><td>${o.book}</td><td>${o.qty}</td></tr>`;
+            const statusClass = o.status === 'Cancelled' ? ' style="background-color:#ffcccc"' : '';
+            const cancelBtn = o.status === 'Active' 
+              ? `<button type="button" onclick="cancelOrderById(${o.order_id})" style="background-color:#ff6b6b; color:white; padding:5px 10px; border:none; cursor:pointer;">Cancel</button>`
+              : '<span style="color:gray;">-</span>';
+            table.innerHTML += `<tr${statusClass}><td>${o.order_id || 'N/A'}</td><td>${o.customer || o.customer_name}</td><td>${o.book}</td><td>${o.qty}</td><td>${o.status}</td><td>${cancelBtn}</td></tr>`;
           });
+        }
+        
+        // Cancel an order by ID
+        async function cancelOrderById(orderId) {
+          try {
+            const response = await fetch(`/api/orders/${orderId}/cancel`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+              alert(`Order ${orderId} has been cancelled.`);
+              // Update local order status
+              const order = orders.find(o => o.order_id === orderId);
+              if (order) order.status = 'Cancelled';
+              renderOrders();
+            } else {
+              alert(`Error: ${result.message}`);
+            }
+          } catch (err) {
+            console.error('Failed to cancel order:', err);
+            alert('Failed to cancel order. Please try again.');
+          }
+        }
+        
+        // Fetch inventory from backend API
+        async function fetchInventoryFromAPI() {
+          try {
+            const response = await fetch('/api/inventory');
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            const apiInventory = await response.json();
+            
+            // Convert API format to internal format
+            inventory.length = 0; // Clear existing
+            apiInventory.forEach(item => {
+              inventory.push({
+                title: item.title,
+                author: item.book_id, // Use book_id as author placeholder
+                qty: item.quantity,
+                book_id: item.book_id
+              });
+            });
+            
+            renderInventory();
+            checkLowStock();
+          } catch (err) {
+            console.error('Failed to fetch inventory from API:', err);
+            // Continue with in-memory inventory as fallback
+          }
+        }
+        
+        // Fetch low stock alerts from backend
+        async function fetchLowStockAlerts(threshold) {
+          try {
+            const response = await fetch(`/api/inventory/low-stock?threshold=${threshold}`);
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            const data = await response.json();
+            return data.items;
+          } catch (err) {
+            console.error('Failed to fetch low stock alerts:', err);
+            return [];
+          }
         }
         
         // Event handler for adding a new book and wiring up order form
@@ -148,6 +506,7 @@
           const el = document.getElementById('lowStockThreshold');
           if (!el) return null;
           const v = parseInt(el.value);
+
           return Number.isFinite(v) ? v : null;
         }
 
@@ -172,6 +531,9 @@
         }
 
         window.addEventListener('DOMContentLoaded', function() {
+          // Load inventory from API first
+          fetchInventoryFromAPI();
+          
           const bookForm = document.getElementById('bookForm');
           if (bookForm) {
             bookForm.onsubmit = function(e) {
@@ -197,7 +559,7 @@
           // Event handler for placing a customer order
           const orderForm = document.getElementById('orderForm');
           if (orderForm) {
-            orderForm.onsubmit = function(e) {
+            orderForm.onsubmit = async function(e) {
               e.preventDefault();
 
               const customer = document.getElementById('custName').value;
@@ -214,19 +576,47 @@
                 return;
               }
 
-              book.qty -= qty;
-              orders.push({ customer, book: book.title, qty });
-
-              orderForm.reset();
-              renderInventory();
-              renderOrders();
-              checkLowStock();
-              // Generate printable receipt for this order
+              // Create order via API
               try {
-                const newOrder = orders[orders.length - 1];
-                generateReceipt(newOrder);
+                const response = await fetch('/api/orders', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    customer_name: customer,
+                    items: [{ book: bookName, quantity: qty }]
+                  })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                  book.qty -= qty;
+                  const orderData = {
+                    order_id: result.order_id,
+                    customer: customer,
+                    customer_name: customer,
+                    book: bookName,
+                    qty: qty,
+                    status: 'Active'
+                  };
+                  orders.push(orderData);
+
+                  orderForm.reset();
+                  renderInventory();
+                  renderOrders();
+                  checkLowStock();
+                  
+                  // Generate printable receipt for this order
+                  try {
+                    generateReceipt(orderData);
+                  } catch (err) {
+                    console.error('Receipt generation failed:', err);
+                  }
+                } else {
+                  alert(`Error: ${result.message}`);
+                }
               } catch (err) {
-                console.error('Receipt generation failed:', err);
+                console.error('Failed to create order:', err);
+                alert('Failed to create order. Please try again.');
               }
             }
           }
@@ -487,11 +877,174 @@
                 if (tableBody && tableBody.querySelectorAll('tr').length === 0) {
                     addItemRow();
                 }
+                // Load supplier order history
+                fetchSupplierOrders('all');
             } catch(error) {
                 console.error('Error initializing purchase order table:', error);
             }
         });
+
+        // ===== SUPPLIER ORDER HISTORY FUNCTIONS =====
+        async function fetchSupplierOrders(filter = 'all') {
+            try {
+                let endpoint = '/api/supplier-orders';
+                if (filter === 'pending') {
+                    endpoint = '/api/supplier-orders/pending';
+                } else if (filter === 'received') {
+                    endpoint = '/api/supplier-orders/received';
+                }
+
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    console.error('Error fetching supplier orders:', response.statusText);
+                    return;
+                }
+
+                const data = await response.json();
+                const orders = data.orders || [];
+                renderSupplierOrderHistory(orders);
+            } catch (error) {
+                console.error('Error fetching supplier orders:', error);
+            }
+        }
+
+        function renderSupplierOrderHistory(orders) {
+            const container = document.getElementById('supplierOrderHistoryBody');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (orders.length === 0) {
+                container.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:15px;">No supplier orders found</td></tr>';
+                return;
+            }
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                
+                // Status color coding
+                const statusColor = order.status === 'Pending' ? 'background-color:#fffacd' : 'background-color:#e8f5e9';
+                row.style.cssText = statusColor;
+
+                row.innerHTML = `
+                    <td>${order.po_id}</td>
+                    <td>${order.supplier_name}</td>
+                    <td>${order.po_date}</td>
+                    <td>${formatCurrency(order.total)}</td>
+                    <td><strong>${order.status}</strong></td>
+                    <td>${order.status === 'Pending' ? `<button type="button" class="action-btn" onclick="markSupplierOrderReceived(${order.po_id})">Mark Received</button>` : '<span style="color:#666;">—</span>'}</td>
+                `;
+
+                container.appendChild(row);
+            });
+        }
+
+        async function markSupplierOrderReceived(poId) {
+            try {
+                const response = await fetch(`/api/supplier-orders/${poId}/receive`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                if (!response.ok) {
+                    console.error('Error marking order as received');
+                    return;
+                }
+
+                // Refresh the display
+                fetchSupplierOrders('all');
+                alert(`Purchase Order #${poId} marked as received!`);
+            } catch (error) {
+                console.error('Error marking order as received:', error);
+            }
+        }
+
+        async function submitSupplierOrder() {
+            try {
+                const supplierName = document.getElementById('supplierName').value.trim();
+                const poDate = document.getElementById('poDate').value;
+
+                if (!supplierName || !poDate) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                // Collect items from the table
+                const tableBody = document.querySelector('#itemTable tbody');
+                const rows = tableBody.querySelectorAll('tr');
+
+                if (rows.length === 0) {
+                    alert('Please add at least one item to the purchase order');
+                    return;
+                }
+
+                const items = [];
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('input');
+                    if (cells.length >= 3) {
+                        const isbn = cells[0].value.trim();
+                        const qty = parseInt(cells[1].value);
+                        const cost = parseFloat(cells[2].value);
+
+                        if (isbn && qty > 0 && cost > 0) {
+                            items.push({
+                                isbn: isbn,
+                                quantity: qty,
+                                unit_cost: cost,
+                                line_total: qty * cost
+                            });
+                        }
+                    }
+                });
+
+                if (items.length === 0) {
+                    alert('Please ensure all items have valid data');
+                    return;
+                }
+
+                // Calculate total from grand total display
+                const grandTotalText = document.getElementById('grandTotal').textContent;
+                const total = parseFloat(grandTotalText.replace('$', '').replace(/,/g, ''));
+
+                // Submit the order
+                const response = await fetch('/api/supplier-orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        supplier_name: supplierName,
+                        po_date: poDate,
+                        items: items,
+                        total: total
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert('Error creating purchase order: ' + (errorData.message || 'Unknown error'));
+                    return;
+                }
+
+                const result = await response.json();
+                alert(`Purchase Order #${result.po_id} created successfully!`);
+
+                // Reset the form
+                document.getElementById('purchaseOrderForm').reset();
+                document.querySelector('#itemTable tbody').innerHTML = '';
+                addItemRow();
+
+                // Refresh supplier order history
+                fetchSupplierOrders('all');
+            } catch (error) {
+                console.error('Error submitting purchase order:', error);
+                alert('Error submitting purchase order');
+            }
+        }
+
+        function filterSupplierOrders(filter) {
+            fetchSupplierOrders(filter);
+        }
     </script>
 
+    </div>
 </body>
 </html>
