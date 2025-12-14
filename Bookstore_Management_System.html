@@ -926,13 +926,21 @@
                 const statusColor = order.status === 'Pending' ? 'background-color:#fffacd' : 'background-color:#e8f5e9';
                 row.style.cssText = statusColor;
 
+                // Build action buttons
+                let actionButtons = '';
+                if (order.status === 'Pending') {
+                    actionButtons = `<button type="button" class="action-btn" onclick="markSupplierOrderReceived(${order.po_id})" style="margin-right:5px;">Receive</button><button type="button" class="action-btn" onclick="cancelSupplierOrder(${order.po_id})" style="background-color:#ff6b6b;">Cancel</button>`;
+                } else {
+                    actionButtons = '<span style="color:#666;">—</span>';
+                }
+
                 row.innerHTML = `
                     <td>${order.po_id}</td>
                     <td>${order.supplier_name}</td>
                     <td>${order.po_date}</td>
                     <td>${formatCurrency(order.total)}</td>
                     <td><strong>${order.status}</strong></td>
-                    <td>${order.status === 'Pending' ? `<button type="button" class="action-btn" onclick="markSupplierOrderReceived(${order.po_id})">Mark Received</button>` : '<span style="color:#666;">—</span>'}</td>
+                    <td>${actionButtons}</td>
                 `;
 
                 container.appendChild(row);
@@ -953,9 +961,34 @@
 
                 // Refresh the display
                 fetchSupplierOrders('all');
-                alert(`Purchase Order #${poId} marked as received!`);
+                alert(`Purchase Order #${poId} marked as received! Inventory updated.`);
             } catch (error) {
                 console.error('Error marking order as received:', error);
+            }
+        }
+
+        async function cancelSupplierOrder(poId) {
+            if (!confirm(`Are you sure you want to cancel Purchase Order #${poId}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/supplier-orders/${poId}/cancel`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert('Error cancelling order: ' + (errorData.message || 'Unknown error'));
+                    return;
+                }
+
+                // Refresh the display
+                fetchSupplierOrders('all');
+                alert(`Purchase Order #${poId} cancelled!`);
+            } catch (error) {
+                console.error('Error cancelling order:', error);
             }
         }
 

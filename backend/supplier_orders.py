@@ -24,6 +24,11 @@ class SupplierOrder:
         self.status = "Received"
         return True
 
+    def cancel(self):
+        """Cancel the order"""
+        self.status = "Cancelled"
+        return True
+
     def to_dict(self):
         """Convert order to dictionary for JSON serialization"""
         return {
@@ -85,6 +90,22 @@ class SupplierOrderManager:
             "order": order.to_dict()
         }
 
+    def cancel_order(self, po_id):
+        """Cancel a purchase order"""
+        if po_id not in self.orders:
+            return {"success": False, "message": "Order not found"}
+        
+        order = self.orders[po_id]
+        if order.status != "Pending":
+            return {"success": False, "message": f"Cannot cancel {order.status} order"}
+        
+        order.cancel()
+        return {
+            "success": True,
+            "message": f"Order {po_id} cancelled",
+            "order": order.to_dict()
+        }
+
     def get_pending_orders(self):
         """Get all pending orders"""
         pending = [order.to_dict() for order in self.orders.values() if order.status == "Pending"]
@@ -119,6 +140,11 @@ def get_order(po_id):
 def mark_order_received(po_id):
     """Mark a purchase order as received"""
     return supplier_manager.mark_order_received(po_id)
+
+
+def cancel_order(po_id):
+    """Cancel a purchase order"""
+    return supplier_manager.cancel_order(po_id)
 
 
 def get_pending_orders():

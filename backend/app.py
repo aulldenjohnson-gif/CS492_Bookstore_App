@@ -5,14 +5,26 @@ from models import db, User
 from werkzeug.exceptions import HTTPException
 import logging
 import os
+import sys
 import book_inventory
 import order_cancellation
-import supplier_orders
+import supplier_orders_manager as supplier_orders
+# Note: django_integration is imported lazily to avoid startup issues
 import webbrowser
 import threading
 import time
 import subprocess
-import sys
+
+# Add parent directory to path for PyInstaller bundles and development
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.abspath(os.path.join(backend_dir, '..'))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
+# If running in PyInstaller bundle, add the bundle root to path as well
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    if sys._MEIPASS not in sys.path:
+        sys.path.insert(0, sys._MEIPASS)
 
 def get_resource_path(resource_name):
     """Get the path to a resource file, handling both PyInstaller bundles and regular installations"""
@@ -147,8 +159,15 @@ def create_app(test_config=None):
     @app.route('/api/inventory', methods=['GET'])
     @login_required
     def api_inventory():
-        # Return current inventory as JSON
-        return jsonify(book_inventory.show_inventory())
+        # Return current inventory from Django database (where supplier orders update it)
+        try:
+            import django_integration
+            inventory_data = django_integration.get_all_inventory()
+            return jsonify(inventory_data)
+        except Exception as e:
+            app.logger.error(f"Error fetching Django inventory: {str(e)}")
+            # Fallback to Flask inventory if Django fails
+            return jsonify(book_inventory.show_inventory())
 
     @app.route('/api/inventory/low-stock', methods=['GET'])
     @login_required
@@ -231,8 +250,57 @@ def create_app(test_config=None):
     @app.route('/api/supplier-orders/<int:po_id>/receive', methods=['POST'])
     @login_required
     def api_receive_supplier_order(po_id):
-        """Mark a supplier order as received"""
+        """Mark a supplier order as received and update inventory"""
         result = supplier_orders.mark_order_received(po_id)
+        
+        if result.get('success'):
+            # Get the order details
+            order = result.get('order', {})
+            items = order.get('items', [])
+            supplier_name = order.get('supplier_name', 'Unknown Supplier')
+            
+            app.logger.info(f"Receiving order {po_id} from {supplier_name} with {len(items)} items: {items}")
+            
+            # Update Django inventory (lazy import to avoid startup issues)
+            try:
+                import django_integration
+                django_result = django_integration.receive_and_update_inventory(
+                    po_id=po_id,
+                    supplier_name=supplier_name,
+                    items=items
+                )
+                
+                # Merge results
+                result['django_sync'] = django_result
+                if django_result.get('inventory_updates'):
+                    result['inventory_updates'] = django_result['inventory_updates']
+                if django_result.get('errors'):
+                    result['inventory_errors'] = django_result['errors']
+                
+                app.logger.info(f"Received supplier order {po_id}. Django sync result: {django_result}")
+            except Exception as e:
+                app.logger.error(f"Django sync failed for order {po_id}: {str(e)}", exc_info=True)
+                # Order is still marked as received in Flask, even if Django sync fails
+        
+        return jsonify(result), 200 if result.get('success') else 400
+
+    @app.route('/api/supplier-orders/<int:po_id>/cancel', methods=['POST'])
+    @login_required
+    def api_cancel_supplier_order(po_id):
+        """Cancel a supplier order"""
+        result = supplier_orders.cancel_order(po_id)
+        
+        if result.get('success'):
+            # Sync cancellation to Django (lazy import to avoid startup issues)
+            try:
+                import django_integration
+                django_result = django_integration.cancel_and_sync_order(po_id)
+                result['django_sync'] = django_result
+                app.logger.info(f"Cancelled supplier order {po_id}. Django sync: {django_result}")
+            except Exception as e:
+                app.logger.warning(f"Django sync failed for order {po_id}: {str(e)}")
+                # Order is still cancelled in Flask, even if Django sync fails
+        
         return jsonify(result), 200 if result.get('success') else 400
 
     @app.route('/api/supplier-orders/pending', methods=['GET'])
